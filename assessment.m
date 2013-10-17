@@ -1,11 +1,23 @@
 
-function [ assessedSample ] = assessment( load )
-%ASSESSMENT Summary of this function goes here
-%   Detailed explanation goes here
+function [indicatorsSample, assessedSample ] = assessment( load )
+%ASSESSMENT This function simulate a given load and performs the assessment of the monitored data
+%applying thresholds to the indicators according to what is specified in
+%the configuration file "DCConfiguration.m"
+% USAGE : [indicatorsSample, assessedSample ] = assessment( load )
+% INPUT: 
+%   load - the load for each virtual machine in the configuration
+% OUTPUT:
+%   indicatorsSample - the vector containing the actual values of all the
+%   indicators
+%   assessedSample - the vector containing the state of all the indicators
 
-DCConfiguration;
+%DCConfiguration;
+global VList;
+global SList;
+global completeSList;
 
-T = 10;
+
+T = 1;
 
 for i = 1:T
     samples(i) = sample(load);
@@ -16,29 +28,40 @@ end
 %virtual machine average usage
 UV = (mean(reshape([samples.UV], length(VList), size(samples,2) ),2))';
 %server average usage
-US = (mean(reshape([samples.US], length(SList), size(samples,2) ),2))';
+US = (mean(reshape([samples.US], length(completeSList), size(samples,2) ),2))';
 %average response time
 R = (mean(reshape([samples.R], length(VList), size(samples,2) ),2))';
 
 %performance per energy
 PV = reshape([samples.PV], length(VList), size(samples,2) );
 
-PS = reshape([samples.PS], length(SList), size(samples,2) );
+PS = reshape([samples.PS], length(completeSList), size(samples,2) );
 
 PE = zeros(1, length(VList));
+
+%power is expressed in watt, energy in kilowattHour
+
 for v = 1 : length(VList)
     if(UV(VList(v).id) == 0)
         PE(VList(v).id) = 0;
         EV(VList(v).id) = 0;
     else
-        N_T = VList(v).activity.N/R(VList(v).id) * T;
-        EV(VList(v).id) = trapz(PV(VList(v).id,:));
-        PE(VList(v).id) = N_T/EV(VList(v).id)*1000;
+        N_T = VList(v).activity.N/R(VList(v).id);
+        if(length(PV(VList(v).id,:)) >1)
+            EV(VList(v).id) = trapz(PV(VList(v).id,:))/T;
+        else
+            EV(VList(v).id) = PV(VList(v).id,:);
+        end
+        PE(VList(v).id) = N_T/EV(VList(v).id);
     end;
 end
 
-for s = 1 : length(SList)
-    ES(SList(s).id) = trapz(PS(SList(s).id,:));
+for s = 1 : length(completeSList)
+    if(length(PS(completeSList(s).id,:)) >1)
+        ES(completeSList(s).id) = trapz(PS(SList(s).id,:))/T;
+    else
+        ES(completeSList(s).id) = PS(completeSList(s).id,:);
+    end
 end
 
 indicatorsSample = [UV, US, R, PE, EV, ES];
@@ -61,13 +84,16 @@ for i = 1 : length(UV)
 end
 
 for i = 1 : length(US)
-    if US(i) < SList(i).cpuT.trL
+    %if the server is off usage is considered satisfied
+    if(isempty(SList([SList.id] == completeSList(i).id)))
+        assessedSample(i+length(UV)) = 3;       
+    elseif US(i) < completeSList(i).cpuT.trL
         assessedSample(i+length(UV)) = 1;
-    elseif US(i) < SList(i).cpuT.tyL
+    elseif US(i) < completeSList(i).cpuT.tyL
         assessedSample(i+length(UV)) = 2;
-    elseif US(i) <SList(i).cpuT.tyH
+    elseif US(i) <completeSList(i).cpuT.tyH
         assessedSample(i+length(UV)) = 3;
-     elseif US(i) <SList(i).cpuT.trH
+     elseif US(i) <completeSList(i).cpuT.trH
         assessedSample(i+length(UV)) = 4;
     else assessedSample(i+length(UV)) = 5;
     end
@@ -101,9 +127,12 @@ for i = 1 : length(EV)
 end
 
 for i = 1 : length(ES)
-    if ES(i) < SList(i).E.tyH
+    %if the server is off usage is considered satisfied
+    if(isempty(SList([SList.id] == completeSList(i).id)))
+        assessedSample(i+length(UV)+length(US)+length(R)+length(PE)+length(EV)) = 3; 
+    elseif ES(i) < completeSList(i).E.tyH
         assessedSample(i+length(UV)+length(US)+length(R)+length(PE)+length(EV)) = 3;
-    elseif ES(i) < SList(i).E.trH
+    elseif ES(i) < completeSList(i).E.trH
         assessedSample(i+length(UV)+length(US)+length(R)+length(PE)+length(EV)) = 4;
     else assessedSample(i+length(UV)+length(US)+length(R)+length(PE)+length(EV)) = 5;
     end

@@ -34,6 +34,8 @@ for l = 1:20
     end
 end
 
+plotMonitoring;
+
 
 
 

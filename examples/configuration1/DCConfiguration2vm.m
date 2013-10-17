@@ -1,6 +1,3 @@
-
-function DCConfiguration()
-
 %Data center components definition
 
 %Servers: id, number of cpus, peak power consumption
@@ -25,11 +22,10 @@ S2.E.trH = 270;
 S2.E.tyH = 250;
 
 global SList;
-SList = [S1, S2];
+SList = [S1];
 global completeSList;
-completeSList = [S1, S2];
-
-%SList = S1;
+%completeSList = [S1, S2];
+completeSList = [S1];
 
 %Activities parameters definition
 A1.id = 1;
@@ -52,19 +48,8 @@ A2.lambda = 0.3;
 A2.prob = 1;
 A2.completionTime = 20;
 
-A3.id = 3;
-A3.N = 5000;
-A3.R.trH = 28;
-A3.R.tyH = 26;
-A3.PE.tyL = 2;
-A3.PE.trL = 1;
-A3.lambda = 0.25;
-A3.prob = 1;
-A3.completionTime = 20;
-
 global AList;
-AList = [A1, A2, A3];
-%AList = [A1, A2];
+AList = [A1, A2];
 
 %Virtual Machines: id, number of cpus, number of transactions executed
 %during a run of the activity, thresholds
@@ -89,29 +74,15 @@ V2.activity = A2;
 V2.E.trH = 100;
 V2.E.tyH = 80;
 
-V3.id = 3;
-V3.cpu = 2;
-V3.cpuT.trH = 95;
-V3.cpuT.tyH = 85;
-V3.cpuT.trL = 25;
-V3.cpuT.tyL = 35;
-V3.activity = A3;
-V3.E.trH = 100;
-V3.E.tyH = 80;
-
 global VList;
-VList = [V1, V2, V3];
-%VList = [V1, V2];
+VList = [V1, V2];
 
+% rows are servers, columns are virtual machines, 1 if virtual machine j on
+% server i
 % rows are servers, columns are virtual machines, 1 if virtual machine j on
 % server i
 global VMAllocation;
 %VMAllocation = [1 0 1; 0 1 0];
 vs1.server = S1.id;
-vs1.vmList = [V1.id, V3.id];
-vs2.server = S2.id;
-vs2.vmList = [V2.id];
-VMAllocation = {vs1, vs2};
-%VMAllocation = [1 1];
-
-
+vs1.vmList = [V1.id, V2.id];
+VMAllocation = {vs1};
